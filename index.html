@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>My Pass</title>
+<style>
+/*
+VOICE: event companion app at night, same feel as the reference pass, warm orange instead of blue
+IDEA: a glowing low-poly scales of justice that fills in as court-tech booths stamp your pass
+PICTURE: scales of justice made of 12 booth nodes; faces light up orange as dots connect
+COLOUR and TYPE: near-black ember ground, orange glow #ff7a1a, peach highlight; K2D throughout
+LAYOUT: one app column, glass cards, 2x2 stat tiles, workshop and booth-quest lists, fixed bottom tab bar
+*/
+@font-face{font-family:K2D;src:url(fonts/K2D-Regular.woff) format("woff");font-weight:400;font-display:swap}
+@font-face{font-family:K2D;src:url(fonts/K2D-SemiBold.woff) format("woff");font-weight:600;font-display:swap}
+@font-face{font-family:K2D;src:url(fonts/K2D-Bold.woff) format("woff");font-weight:700;font-display:swap}
+@font-face{font-family:K2D;src:url(fonts/K2D-ExtraBold.woff) format("woff");font-weight:800;font-display:swap}
+:root{color-scheme:dark;--bg:#110703;--bg2:#1c0c05;--ink:#fff4ec;--mute:#c8a690;--dim:#8a6a57;
+--o:#ff7a1a;--o2:#ffb067;--glass:rgba(255,140,60,.07);--edge:rgba(255,160,90,.18);--edge2:rgba(255,160,90,.35)}
+*{box-sizing:border-box;min-width:0}
+html{background:var(--bg)}
+body{margin:0;color:var(--ink);font:16px/1.5 K2D,"Noto Sans Thai",system-ui,sans-serif;overflow-x:clip;min-height:100vh;
+background:radial-gradient(90% 50% at 50% 0%,#4a1c06 0%,transparent 70%),
+linear-gradient(rgba(255,140,60,.05) 1px,transparent 1px) 0 0/28px 28px,
+linear-gradient(90deg,rgba(255,140,60,.05) 1px,transparent 1px) 0 0/28px 28px,var(--bg)}
+h1,h2,h3,p{margin:0}
+button{font:inherit;color:inherit;cursor:pointer}
+a{color:inherit}
+:focus-visible{outline:2px solid var(--o2);outline-offset:2px}
+.app{max-width:560px;margin:0 auto;padding:0 16px 120px}
+.top{position:sticky;top:0;z-index:6;display:flex;align-items:center;gap:10px;padding:12px 16px;margin:0 -16px;
+background:rgba(17,7,3,.82);backdrop-filter:blur(10px);border-bottom:1px solid var(--edge)}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--o);box-shadow:0 0 10px var(--o)}
+.top b{flex:1;font-weight:600;font-size:15px}
+.pillbtn{border:1px solid var(--edge2);background:transparent;border-radius:99px;padding:6px 14px;font-size:13px;min-height:34px}
+.hello{padding:22px 0 16px}
+.hello small{color:var(--mute);font-size:13px}
+.hello h1{font-weight:800;font-size:clamp(38px,11vw,52px);line-height:1.02;letter-spacing:-.5px}
+.hello h1 span{color:var(--o2)}
+.card{background:linear-gradient(180deg,rgba(255,140,60,.09),rgba(255,140,60,.03));border:1px solid var(--edge);border-radius:20px;padding:14px;box-shadow:inset 0 1px 0 rgba(255,200,150,.06)}
+.lbl{font-size:11px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase}
+.cons .lblrow{display:flex;justify-content:space-between}
+.map{position:relative;aspect-ratio:300/215;margin:6px 0 4px}
+.map svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.face{fill:rgba(255,122,26,.06);stroke:rgba(255,170,110,.22);stroke-width:.6;transition:fill .5s}
+.face.lit{fill:var(--f)}
+.edge{stroke:rgba(255,170,110,.22);stroke-width:.8}
+.edge.lit{stroke:#ffd2ad;stroke-width:1.3}
+.node{cursor:pointer}
+.node .hit{fill:transparent}
+.node .c{fill:#2a1209;stroke:#ffcfaa;stroke-width:1.2}
+.node.got .c{fill:#fff;stroke:var(--o);stroke-width:2;filter:drop-shadow(0 0 4px var(--o))}
+.node:focus-visible .c{stroke:#fff;stroke-width:2.5}
+.node.pop .c{animation:pop .5s;transform-box:fill-box;transform-origin:center}
+@keyframes pop{0%{transform:scale(.3)}70%{transform:scale(1.6)}100%{transform:scale(1)}}
+.seg{display:grid;grid-template-columns:repeat(12,minmax(0,1fr));gap:4px;margin:8px 0 12px}
+.seg i{height:4px;border-radius:3px;background:rgba(255,170,110,.18)}
+.seg i.on{background:var(--o);box-shadow:0 0 6px var(--o)}
+.progrow{display:flex;align-items:flex-end;gap:12px}
+.cnt{font-size:44px;font-weight:600;line-height:1}
+.cnt span{font-size:20px;color:var(--dim)}
+.progrow .sub{font-size:13px;color:var(--mute)}
+.reward{margin-left:auto;border:1px solid var(--edge2);border-radius:14px;padding:6px 12px;font-size:13px;color:var(--o2);max-width:56%}
+.live{display:flex;align-items:center;gap:8px;margin-top:12px;text-decoration:none}
+.livetag{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:700;border-radius:99px;padding:2px 10px;background:rgba(255,170,110,.12)}
+.livetag::before{content:"";width:6px;height:6px;border-radius:50%;background:var(--dim)}
+.livetag.on{background:var(--o);color:#2a0f02}.livetag.on::before{background:#2a0f02;animation:blink 1.2s infinite}
+@keyframes blink{50%{opacity:.2}}
+.live .sm{font-size:13px;color:var(--mute)}
+.live p{font-size:15px;margin-top:4px}
+.tiles{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:12px}
+.tile{display:flex;flex-direction:column;gap:6px;text-decoration:none;min-height:150px;position:relative}
+.tile .ic{width:34px;height:34px;border-radius:10px;border:1px solid var(--edge2);display:grid;place-items:center;color:var(--o2)}
+.tile .arr{position:absolute;right:14px;top:14px;color:var(--dim)}
+.tile b{font-size:34px;font-weight:600;line-height:1;margin-top:auto}
+.tile b.txt{font-size:19px;line-height:1.25}
+.tile span{font-size:14px}
+.tile em{font-style:normal;font-size:10px;letter-spacing:.14em;color:var(--dim);text-transform:uppercase}
+.sec{margin-top:28px}
+.sechead{display:flex;align-items:flex-end;gap:8px;margin-bottom:10px}
+.sechead h2{font-size:20px;font-weight:600;flex:1}
+.sechead .r{font-size:13px;color:var(--mute);white-space:nowrap}
+.sechead a.r{color:var(--o2)}
+.list{display:grid;gap:10px}
+.ws{display:grid;grid-template-columns:auto minmax(0,1fr);gap:4px 12px;align-items:start}
+.wtag{font-weight:700;font-size:14px;border-radius:10px;background:rgba(255,170,110,.12);border:1px solid var(--edge);padding:6px 0;width:42px;text-align:center}
+.ws h3{font-size:16px;font-weight:600;line-height:1.3}
+.ws .m{font-size:12px;color:var(--mute)}.ws .m .t{white-space:nowrap}
+.ws p{font-size:13px;color:var(--mute);grid-column:2}
+.ws .act{grid-column:2;justify-self:start;margin-top:6px}
+.chk{border:1px solid var(--edge2);background:transparent;border-radius:99px;padding:6px 14px;font-size:13px;font-weight:600;min-height:36px}
+.chk.on{background:var(--o);border-color:var(--o);color:#2a0f02}
+.ws.done{border-color:rgba(255,122,26,.5)}
+.quest{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.qb{text-align:left;min-height:110px;display:flex;flex-direction:column;gap:4px}
+.qb b{font-size:34px;font-weight:600;line-height:1}
+.qb span{font-size:14px}
+.qb em{font-style:normal;font-size:12px;color:var(--dim)}
+.qb.got{border-color:rgba(255,122,26,.55);background:linear-gradient(180deg,rgba(255,122,26,.22),rgba(255,122,26,.06))}
+.qb.got b{color:var(--o2)}
+.filters{display:flex;gap:8px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px}
+.filters button{flex:none;border:1px solid var(--edge);background:var(--glass);border-radius:99px;padding:6px 14px;font-size:13px;min-height:36px}
+.filters button.on{background:var(--o);border-color:var(--o);color:#2a0f02;font-weight:600}
+.st{font-size:11px;font-weight:700;border-radius:99px;padding:2px 9px;white-space:nowrap}
+.st.s-live{background:var(--o);color:#2a0f02}.st.s-done{background:rgba(255,170,110,.12);color:var(--dim)}.st.s-soon{border:1px solid var(--edge2);color:var(--mute)}
+.view{display:none}.view.on{display:block}
+.note{font-size:12px;color:var(--dim);margin-top:24px;text-align:center}
+.ghost{background:none;border:0;color:var(--o2);text-decoration:underline;font-size:12px;padding:8px}
+.tabbar{position:fixed;left:50%;bottom:12px;transform:translateX(-50%);width:min(528px,calc(100% - 24px));z-index:7;
+display:grid;grid-template-columns:repeat(4,minmax(0,1fr));background:rgba(28,12,5,.9);backdrop-filter:blur(12px);border:1px solid var(--edge);border-radius:24px;padding:8px}
+.tabbar a{display:flex;flex-direction:column;align-items:center;gap:2px;text-decoration:none;font-size:12px;color:var(--dim);padding:4px 0}
+.tabbar a i{width:44px;height:36px;border-radius:12px;display:grid;place-items:center}
+.tabbar a.on{color:var(--ink)}
+.tabbar a.on i{background:linear-gradient(180deg,#ff9a45,#ff6a00);color:#fff;box-shadow:0 0 16px rgba(255,110,10,.6)}
+.fab{position:fixed;right:max(16px,calc(50% - 264px));bottom:96px;z-index:7;width:56px;height:56px;border-radius:50%;border:1.5px solid var(--o2);
+background:radial-gradient(circle at 50% 35%,#5a2409,#1c0c05);display:grid;place-items:center;box-shadow:0 0 18px rgba(255,122,26,.55)}
+dialog{border:1px solid var(--edge2);border-radius:22px;padding:0;width:min(360px,92vw);background:#1c0c05;color:var(--ink)}
+dialog::backdrop{background:rgba(0,0,0,.7)}
+.dl{padding:18px}
+.dl h3{font-size:22px;font-weight:700;margin:4px 0}
+.dl p{color:var(--mute);font-size:14px}
+.qr{background:#fff;border-radius:14px;padding:12px;width:190px;margin:14px auto 8px}
+.row{display:flex;gap:8px;margin-top:16px}
+.row button{flex:1;min-height:46px;border-radius:14px;border:1px solid var(--edge2);background:transparent;font-weight:600}
+.row .main{background:var(--o);border-color:var(--o);color:#2a0f02}
+.toast{position:fixed;left:50%;bottom:100px;transform:translate(-50%,20px);opacity:0;background:var(--o);color:#2a0f02;font-weight:600;padding:10px 18px;border-radius:14px;transition:.3s;z-index:9;max-width:90vw;pointer-events:none}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="top"><span class="dot"></span><b>Get Shine Thailand 2026</b><button class="pillbtn" id="openTk">บัตรของฉัน</button></div>
+
+  <div class="hello">
+    <small>ยินดีต้อนรับ</small>
+    <h1>Get Shine<br>Thailand <span>2026</span></h1>
+  </div>
+
+  <div class="card cons">
+    <div class="lblrow"><span class="lbl">Constellation</span><span class="lbl">12 nodes</span></div>
+    <div class="map"><svg id="map" viewBox="0 0 300 215" role="group" aria-label="แผนที่บูธ แตะจุดเพื่อเช็กอิน"></svg></div>
+    <div class="seg" id="seg"></div>
+    <div class="progrow">
+      <div><div class="lbl">Dots<br>connected</div><div class="cnt" id="cnt"></div><div class="sub" id="left"></div></div>
+      <div class="reward" id="reward"></div>
+    </div>
+  </div>
+
+  <div class="view" id="v-home">
+    <a class="card live" href="#agenda" style="display:block">
+      <div style="display:flex;gap:8px;align-items:center"><span class="livetag" id="liveTag">LIVE</span><span class="sm">Agenda</span></div>
+      <p id="liveTxt"></p>
+    </a>
+    <div class="tiles" id="tiles"></div>
+
+    <div class="sec">
+      <div class="lbl">Workshop</div>
+      <div class="sechead"><h2>Workshop</h2><span class="r" id="wCnt"></span></div>
+      <div class="list" id="wList"></div>
+    </div>
+
+    <div class="sec">
+      <div class="lbl">Booth quest</div>
+      <div class="sechead"><h2>บูธที่ยังไม่ได้ไป</h2><a class="r" href="#booths">ดูทั้งหมด</a></div>
+      <div class="quest" id="todo"></div>
+    </div>
+  </div>
+
+  <div class="view" id="v-agenda">
+    <div class="sec">
+      <div class="lbl">Agenda</div>
+      <div class="sechead"><h2>กำหนดการวันนี้</h2><span class="r" id="agCnt"></span></div>
+      <div class="filters" id="agTabs"></div>
+      <div class="list" id="agList"></div>
+    </div>
+  </div>
+
+  <div class="view" id="v-booths">
+    <div class="sec">
+      <div class="lbl">Booths</div>
+      <div class="sechead"><h2>บูธทั้งหมด</h2><span class="r" id="bCnt"></span></div>
+      <div class="quest" id="bList"></div>
+    </div>
+  </div>
+
+  <div class="view" id="v-pass">
+    <div class="sec">
+      <div class="lbl">My Pass</div>
+      <div class="sechead"><h2>บัตรและรางวัล</h2></div>
+      <div class="card" style="text-align:center">
+        <div class="qr" id="qr2"></div>
+        <p style="color:var(--mute);font-size:14px">คุณแพรวา ใจดี · รหัส GST-26-0482</p>
+      </div>
+      <div class="list" id="tiers" style="margin-top:12px"></div>
+    </div>
+  </div>
+
+  <p class="note">ข้อมูลทั้งหมดเป็นตัวอย่าง · ความคืบหน้าเก็บไว้ในเบราว์เซอร์นี้<br><button class="ghost" id="reset">เริ่มใหม่</button></p>
+</div>
+
+<button class="fab" id="fab" aria-label="เปิดบัตรของฉัน">
+  <svg width="30" height="30" viewBox="0 0 40 40" fill="none" stroke="#ff9a45" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 5v27M12 34h16M7 11h26M20 8v3"/><path d="M7 11l-5 11h10zM33 11l-5 11h10z"/><path d="M2 22a5 3 0 0010 0M28 22a5 3 0 0010 0" fill="#ff7a1a" stroke="#ff7a1a"/></svg>
+</button>
+
+<nav class="tabbar" id="nav">
+  <a href="#home"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 11l9-7 9 7v9a1 1 0 01-1 1h-5v-6h-6v6H4a1 1 0 01-1-1z"/></svg></i>หน้าหลัก</a>
+  <a href="#agenda"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4M12 14v3l2 1"/></svg></i>Agenda</a>
+  <a href="#booths"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg></i>บูธ</a>
+  <a href="#pass"><i><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM20 14v1M14 20h1M18 18h3v3"/></svg></i>My Pass</a>
+</nav>
+
+<dialog id="tkDlg"><div class="dl" style="text-align:center">
+  <div class="lbl">Attendee pass</div><h3>Get Shine Thailand 2026</h3><p>คุณแพรวา ใจดี · Visitor</p>
+  <div class="qr" id="qr"></div><p>รหัสบัตร <b style="color:var(--ink)">GST-26-0482</b></p>
+  <p style="font-size:12px;color:var(--dim)">QR ตัวอย่าง ไม่ใช่บัตรจริง</p>
+  <div class="row"><button class="main" data-close>ปิด</button></div>
+</div></dialog>
+
+<dialog id="bDlg"><div class="dl">
+  <div class="lbl" id="bdZone"></div><h3 id="bdName"></h3><p id="bdDesc"></p>
+  <div class="row"><button data-close>ปิด</button><button class="main" id="bdGo"></button></div>
+</div></dialog>
+
+<div class="toast" id="toast" role="status"></div>
+
+<script>
+{
+// booth: name, zone, desc, x, y  (nodes of the low-poly fox)
+const B=[
+ ["Smart Court Vision","โซน e-Court","ภาพรวมศาลดิจิทัล ตั้งแต่ยื่นฟ้องจนถึงอ่านคำพิพากษาออนไลน์",150,12],
+ ["Zero Trust Gateway","โซน Cyber Defense","ตรวจสอบตัวตนทุกครั้งก่อนเข้าถึงระบบงานคดี ไม่เชื่อใจใครโดยปริยาย",150,40],
+ ["ระบบยื่นฟ้องอิเล็กทรอนิกส์","โซน e-Court","ลองยื่นคำฟ้อง ชำระค่าธรรมเนียม และติดตามสถานะคดีผ่านเว็บ",40,46],
+ ["ห้องพิจารณาคดีออนไลน์","โซน e-Court","สาธิตการไต่สวนทางไกลผ่านวิดีโอ พร้อมระบบยืนยันตัวตนคู่ความ",260,46],
+ ["ลายมือชื่อดิจิทัล","โซน e-Court","ลงนามเอกสารคดีด้วย Digital Signature และตรวจสอบความถูกต้อง",12,118],
+ ["สำนวนคดีดิจิทัล","โซน Data & AI","จัดเก็บ ค้นหา และแชร์สำนวนอย่างปลอดภัยระหว่างหน่วยงาน",68,118],
+ ["AI ค้นคำพิพากษา","โซน Data & AI","ค้นแนวคำพิพากษาด้วยภาษาธรรมชาติ และสรุปประเด็นสำคัญ",40,138],
+ ["ศูนย์เฝ้าระวังภัยไซเบอร์ (SOC)","โซน Cyber Defense","ดูการตรวจจับและตอบสนองภัยคุกคามแบบเรียลไทม์ 24 ชั่วโมง",232,118],
+ ["ซ้อมรับมือ Ransomware","โซน Cyber Defense","จำลองเหตุการณ์ถูกเรียกค่าไถ่ และขั้นตอนกู้ระบบจากข้อมูลสำรอง",288,118],
+ ["PDPA ข้อมูลคู่ความ","โซน Data & AI","การปกปิดข้อมูลส่วนบุคคลในคำพิพากษาก่อนเผยแพร่",260,138],
+ ["นิติวิทยาศาสตร์ดิจิทัล","โซน Digital Evidence","เก็บและตรวจพยานหลักฐานดิจิทัลโดยรักษา Chain of Custody",110,200],
+ ["ตรวจจับ Deepfake","โซน Digital Evidence","ทดสอบว่าภาพ เสียง หรือวิดีโอที่ใช้เป็นพยานถูกตัดต่อหรือไม่",190,200]
+];
+// faces: node indexes + lit colour
+const F=[[0,2,1,"#ff9a45"],[0,1,3,"#ff7a1a"],[2,4,5,"rgba(255,154,69,.32)"],[3,7,8,"rgba(255,154,69,.32)"],[4,5,6,"#ff7a1a"],[7,8,9,"#ff7a1a"],[1,10,11,"#e85a0c"]];
+const E=[...new Set(F.flatMap(f=>[[f[0],f[1]],[f[1],f[2]],[f[0],f[2]]].map(p=>p.sort((a,b)=>a-b).join("-"))))].map(s=>s.split("-").map(Number));
+const TIERS=[[4,"คูปองเครื่องดื่ม"],[8,"คูปองอาหาร 100 บาท"],[12,"ของที่ระลึก Get Shine"]];
+const W=[
+ ["W1","Zero Trust สำหรับระบบงานศาล (Advanced)","24 พ.ย. 10:00–11:00","MR101","ออกแบบการยืนยันตัวตนและสิทธิ์เข้าถึงระบบงานคดีแบบหลายชั้น"],
+ ["W2","ยื่นฟ้องออนไลน์ใน 15 นาที (Beginner)","24 พ.ย. 11:15–12:15","MR102","ลงมือยื่นคำฟ้องตัวอย่างตั้งแต่ต้นจนจบ เหมาะกับเจ้าหน้าที่และทนายความ"],
+ ["W3","ตรวจพยานหลักฐานดิจิทัลเบื้องต้น","24 พ.ย. 13:00–14:00","MR101","ทำสำเนาและคำนวณค่า Hash เพื่อยืนยันว่าหลักฐานไม่ถูกแก้ไข"],
+ ["W4","แผนรับมือเหตุภัยไซเบอร์ในองค์กรยุติธรรม","24 พ.ย. 14:15–15:15","MR103","Tabletop exercise เมื่อระบบถูก Ransomware โจมตี"],
+ ["W5","ใช้ AI ช่วยค้นแนวคำพิพากษาอย่างรับผิดชอบ","24 พ.ย. 15:30–16:30","MR102","เทคนิคตั้งคำถาม ตรวจสอบแหล่งที่มา และข้อควรระวังด้านจริยธรรม"],
+ ["W6","PDPA กับการเผยแพร่คำพิพากษา","24 พ.ย. 16:45–17:30","MR104","ฝึกปกปิดข้อมูลส่วนบุคคลจากเอกสารตัวอย่าง"]
+];
+const AG=[
+ ["09:00","09:30","Main Stage","พิธีเปิดงาน Get Shine Thailand 2026"],["09:30","10:30","Main Stage","Keynote: ก้าวสู่ศาลดิจิทัลเต็มรูปแบบ"],
+ ["10:45","11:30","Stage B","เสวนา: ความเชื่อมั่นของประชาชนต่อศาลออนไลน์"],["11:30","12:30","Main Stage","ภัยไซเบอร์ที่มุ่งเป้าหน่วยงานยุติธรรม"],
+ ["13:00","14:00","Stage B","AI กับกระบวนการยุติธรรม: โอกาสและขอบเขต"],["14:00","15:00","Main Stage","Live demo: ไต่สวนทางไกลข้ามจังหวัด"],
+ ["15:15","16:15","Stage B","พยานหลักฐานดิจิทัลและ Deepfake ในชั้นศาล"],["16:30","17:30","Main Stage","สรุปทิศทาง Court Tech ปี 2027"],
+ ["18:00","20:00","ลานกลางแจ้ง","Get Shine Networking Night"]
+];
+const KEY="getshine-pass-v1";
+let st={b:[],w:[]},fresh=true;
+try{const raw=localStorage.getItem(KEY);fresh=!raw;const s=JSON.parse(raw);if(s&&Array.isArray(s.b))st=s}catch(e){}
+if(fresh)st.b=[3];
+const save=()=>{try{localStorage.setItem(KEY,JSON.stringify(st))}catch(e){}};
+const $=id=>document.getElementById(id);
+const has=i=>st.b.includes(i);
+const p2=n=>String(n).padStart(2,"0");
+let tt;const toast=m=>{const t=$("toast");t.textContent=m;t.classList.add("show");clearTimeout(tt);tt=setTimeout(()=>t.classList.remove("show"),2200)};
+const mins=t=>{const[h,m]=t.split(":").map(Number);return h*60+m};
+const nowM=()=>{const d=new Date();return d.getHours()*60+d.getMinutes()};
+const status=(a,b)=>{const n=nowM();return n<mins(a)?["soon","เร็วๆ นี้"]:n<mins(b)?["live","LIVE"]:["done","จบแล้ว"]};
+const IC={
+ grid:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
+ cal:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg>',
+ gift:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="8" width="18" height="5" rx="1"/><path d="M5 13v8h14v-8M12 8v13M12 8c-2-4-6-4-6-1s6 1 6 1 6 2 6-1-4-3-6 1"/></svg>',
+ qr:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><path d="M14 14h3v3h-3zM18 18h3v3"/></svg>'
+};
+const ARR='<svg class="arr" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M8 7h9v9"/></svg>';
+
+function drawMap(pop){
+  const fc=F.map(f=>{const lit=has(f[0])&&has(f[1])&&has(f[2]);return `<polygon class="face${lit?" lit":""}" style="--f:${f[3]}" points="${[f[0],f[1],f[2]].map(i=>B[i][3]+","+B[i][4]).join(" ")}"/>`}).join("");
+  const ed=E.map(([a,b])=>`<line class="edge${has(a)&&has(b)?" lit":""}" x1="${B[a][3]}" y1="${B[a][4]}" x2="${B[b][3]}" y2="${B[b][4]}"/>`).join("");
+  const nd=B.map((x,i)=>`<g class="node${has(i)?" got":""}${pop===i?" pop":""}" data-i="${i}" tabindex="0" role="button" aria-label="บูธ ${p2(i+1)} ${x[0]}${has(i)?" เช็กอินแล้ว":""}"><circle class="hit" cx="${x[3]}" cy="${x[4]}" r="14"/><circle class="c" cx="${x[3]}" cy="${x[4]}" r="${has(i)?4.5:3.5}"/></g>`).join("");
+  $("map").innerHTML=`<defs><radialGradient id="gl"><stop offset="0" stop-color="#ff7a1a" stop-opacity=".45"/><stop offset="1" stop-color="#ff7a1a" stop-opacity="0"/></radialGradient></defs><ellipse cx="150" cy="208" rx="120" ry="10" fill="url(#gl)"/><ellipse cx="150" cy="208" rx="100" ry="6" fill="none" stroke="rgba(255,170,110,.3)" stroke-dasharray="2 3"/>`+fc+ed+nd;
+}
+function renderTop(){
+  const n=st.b.length;
+  $("seg").innerHTML=B.map((_,i)=>`<i class="${i<n?"on":""}"></i>`).join("");
+  $("cnt").innerHTML=`${p2(n)}<span> / ${B.length}</span>`;
+  $("left").textContent=n===B.length?"ครบแล้ว!":`เหลืออีก ${B.length-n} บูธ`;
+  const next=TIERS.find(([k])=>n<k);
+  $("reward").textContent=next?`รางวัลถัดไป: ${next[1]} (อีก ${next[0]-n} บูธ)`:"ครบทุกบูธ รับของที่ระลึกที่จุดลงทะเบียน";
+}
+const qbox=i=>`<button class="card qb${has(i)?" got":""}" data-open="${i}"><b>${p2(i+1)}</b><span>${B[i][0]}</span><em>${has(i)?"✓ เช็กอินแล้ว":B[i][1]}</em></button>`;
+const agRow=a=>{const[s,l]=status(a[0],a[1]);return `<div class="card ws"><div class="wtag" style="width:auto;padding:6px 8px">${a[0]}</div>
+  <div><h3>${a[3]}</h3><div class="m"><span class="t">${a[0]}–${a[1]}</span> · ${a[2]}</div><div style="margin-top:6px"><span class="st s-${s}">${l}</span></div></div></div>`};
+let agFilter="ทั้งหมด";
+function renderBody(){
+  const live=AG.filter(a=>status(a[0],a[1])[0]==="live");
+  const next=AG.find(a=>status(a[0],a[1])[0]==="soon");
+  $("liveTag").classList.toggle("on",live.length>0);
+  $("liveTxt").textContent=live.length?`กำลังจัด: ${live[0][3]} · ${live[0][2]}`:next?`ถัดไป ${next[0]} น. · ${next[3]}`:"จบทุกเซสชันแล้ว";
+  const n=st.b.length,nextT=TIERS.find(([k])=>n<k);
+  $("tiles").innerHTML=[
+    ["#booths",IC.grid,B.length,"บูธทั้งหมด","Booths"],
+    ["#agenda",IC.cal,AG.length,"Agenda","Sessions"],
+    ["#pass",IC.gift,nextT?nextT[1]:"รับรางวัลได้แล้ว","รางวัล","Reward",1],
+    ["#pass",IC.qr,`${n}/${B.length}`,"My Pass","GST-0482"]
+  ].map(t=>`<a class="card tile" href="${t[0]}"><span class="ic">${t[1]}</span>${ARR}<b class="${t[5]?"txt":""}">${t[2]}</b><span>${t[3]}</span><em>${t[4]}</em></a>`).join("");
+  $("wCnt").textContent=`เข้าร่วมแล้ว ${st.w.length} จาก ${W.length}`;
+  $("wList").innerHTML=W.map(w=>{const on=st.w.includes(w[0]);return `<div class="card ws${on?" done":""}"><div class="wtag">${w[0]}</div>
+    <div><h3>${w[1]}</h3><div class="m"><span class="t">${w[2]}</span> · ${w[3]}</div></div>
+    <p>${w[4]}</p><div class="act"><button class="chk${on?" on":""}" data-w="${w[0]}">${on?"✓ เข้าร่วมแล้ว":"เช็กอิน"}</button></div></div>`}).join("");
+  const todo=B.map((_,i)=>i).filter(i=>!has(i));
+  $("todo").innerHTML=todo.length?todo.slice(0,6).map(qbox).join(""):`<div class="card" style="grid-column:1/-1">เก็บครบทุกบูธแล้ว</div>`;
+  $("bList").innerHTML=B.map((_,i)=>qbox(i)).join("");
+  $("bCnt").textContent=`ไปแล้ว ${n} จาก ${B.length}`;
+  const stages=["ทั้งหมด",...new Set(AG.map(a=>a[2]))];
+  $("agTabs").innerHTML=stages.map(s=>`<button data-ag="${s}" class="${s===agFilter?"on":""}">${s}</button>`).join("");
+  $("agList").innerHTML=AG.filter(a=>agFilter==="ทั้งหมด"||a[2]===agFilter).map(agRow).join("");
+  $("agCnt").textContent=`${AG.length} เซสชัน`;
+  $("tiers").innerHTML=TIERS.map(([k,r])=>`<div class="card ws${n>=k?" done":""}"><div class="wtag">${k}</div><div><h3>${r}</h3><div class="m">${n>=k?"รับได้แล้ว แสดงบัตรที่จุดลงทะเบียน":"สะสมอีก "+(k-n)+" บูธ"}</div></div></div>`).join("");
+}
+function render(pop){drawMap(pop);renderTop();renderBody()}
+
+function toggleBooth(i){
+  if(has(i)){st.b=st.b.filter(x=>x!==i);toast(`ยกเลิกแสตมป์ ${B[i][0]}`)}
+  else{const before=st.b.length;st.b.push(i);const t=TIERS.find(([k])=>before<k&&st.b.length>=k);toast(t?`ปลดล็อกรางวัล: ${t[1]}`:`ได้แสตมป์ ${B[i][0]}`)}
+  save();render(has(i)?i:undefined);
+}
+let cur=-1;
+function openBooth(i){
+  cur=i;$("bdZone").textContent=`บูธ ${p2(i+1)} · ${B[i][1]}`;$("bdName").textContent=B[i][0];$("bdDesc").textContent=B[i][2];
+  $("bdGo").textContent=has(i)?"ยกเลิกแสตมป์":"จำลองสแกน QR";$("bDlg").showModal();
+}
+$("bdGo").addEventListener("click",()=>{$("bDlg").close();toggleBooth(cur)});
+$("map").addEventListener("click",e=>{const g=e.target.closest(".node");if(g)openBooth(+g.dataset.i)});
+$("map").addEventListener("keydown",e=>{const g=e.target.closest(".node");if(g&&(e.key==="Enter"||e.key===" ")){e.preventDefault();openBooth(+g.dataset.i)}});
+document.addEventListener("click",e=>{
+  const o=e.target.closest("[data-open]");if(o){openBooth(+o.dataset.open);return}
+  const w=e.target.closest("[data-w]");if(w){const id=w.dataset.w;st.w=st.w.includes(id)?st.w.filter(x=>x!==id):[...st.w,id];save();renderBody();return}
+  const a=e.target.closest("[data-ag]");if(a){agFilter=a.dataset.ag;renderBody();return}
+  if(e.target.closest("[data-close]"))e.target.closest("dialog").close();
+});
+for(const d of document.querySelectorAll("dialog"))d.addEventListener("click",e=>{if(e.target===d)d.close()});
+const openTk=()=>$("tkDlg").showModal();
+$("openTk").addEventListener("click",openTk);$("fab").addEventListener("click",openTk);
+$("reset").addEventListener("click",()=>{st={b:[],w:[]};save();render();toast("เริ่มใหม่แล้ว")});
+
+// sample QR pattern (not scannable)
+const qrSvg=(()=>{let seed=482,c="";const N=25,r=()=>(seed=(seed*9301+49297)%233280)/233280;
+  const f=(x,y)=>`<rect x="${x}" y="${y}" width="7" height="7"/><rect x="${x+1}" y="${y+1}" width="5" height="5" fill="#fff"/><rect x="${x+2}" y="${y+2}" width="3" height="3"/>`;
+  for(let y=0;y<N;y++)for(let x=0;x<N;x++){if(!((x<8&&y<8)||(x>16&&y<8)||(x<8&&y>16))&&r()>.52)c+=`<rect x="${x}" y="${y}" width="1" height="1"/>`}
+  return `<svg viewBox="0 0 25 25" shape-rendering="crispEdges" width="100%">${c}${f(0,0)}${f(18,0)}${f(0,18)}</svg>`})();
+$("qr").innerHTML=qrSvg;$("qr2").innerHTML=qrSvg;
+
+const views=["home","agenda","booths","pass"];
+function route(){
+  const h=location.hash.slice(1),v=views.includes(h)?h:"home";
+  for(const x of views)$("v-"+x).classList.toggle("on",x===v);
+  for(const a of $("nav").children)a.classList.toggle("on",a.getAttribute("href")==="#"+v);
+}
+window.addEventListener("hashchange",()=>{route();window.scrollTo(0,0)});
+route();render();
+setInterval(()=>{renderBody()},60000);
+}
+</script>
+</body>
+</html>
